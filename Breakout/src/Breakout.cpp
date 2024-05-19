@@ -7,7 +7,7 @@
 #include "Game.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
+void key_callback(GLFWwindow *window,int key,int scancode,int action,int mode);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -39,7 +39,7 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    
+    glfwSetKeyCallback(window, key_callback);
     //glEnable(GL_BLEND);
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -51,17 +51,28 @@ int main()
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     Breakout.Init();
     
+    float deltaTime = 0.0f;
+    float lastFrame = 0.0f;
     while (!glfwWindowShouldClose(window))
     {
-        
+        //calcuate delta time
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
         glfwPollEvents();
 
+        //manager user input
+        Breakout.ProcessInput(deltaTime);
+
+        //udpate game state
+        Breakout.Update(deltaTime);
+
+        //render
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         Breakout.Render();
 
         glfwSwapBuffers(window);
-       
     }
 
     
@@ -73,10 +84,21 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+    if (key >= 0 && key < 1024)
+    {
+        if (action == GLFW_PRESS) {
+            Breakout.Keys[key] = true;
+        }
+        else if (action == GLFW_RELEASE) {
+            Breakout.Keys[key] = false;
+            Breakout.KeysProcessed[key] = false;
+        }
+            
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes

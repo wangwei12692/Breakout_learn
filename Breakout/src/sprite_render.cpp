@@ -27,6 +27,7 @@ void SpriteRender::DrawSprite(Texture2D& texture, glm::vec2 position, glm::vec2 
 	//复原
 	rotateMat = glm::translate(rotateMat, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
 
+	//放大至size 大小，从左上角
 	glm::mat4 scaleMat(1.0f);
 	scaleMat = glm::scale(scaleMat, glm::vec3(size, 1.0f));
 
@@ -43,6 +44,7 @@ void SpriteRender::DrawSprite(Texture2D& texture, glm::vec2 position, glm::vec2 
 
 void SpriteRender::initRenderData()
 {
+	//一组以四边形的左上角为(0,0)坐标的顶点。这意味着当我们在四边形上应用一个位移或缩放变换的时候，它们会从四边形的左上角开始进行变换。这在2D图形以及/或GUI系统中广为接受，元素的位置定义为元素左上角的位置。
 	unsigned int VBO;
 	float vertices[] = {
 		//pos     //tex

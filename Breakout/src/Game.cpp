@@ -1,15 +1,23 @@
 #include <glm/glm.hpp>
 #include <iostream>
-
+//先引入glad，在引入glfw，不然报错
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 #include "Game.h"
 #include "resource_manager.h"
 #include "sprite_render.h"
+#include "game_object.h"
+
+
+const glm::vec2 PLAYER_SIZE(100, 20);
+const float PLAYER_VELOCITY = 500.0f;
 
 SpriteRender* Renderer;
+GameObject* Player;
 
 Game::Game(unsigned int width, unsigned int height)
-	:State(GAME_MENU), Keys(), KeysProcessed(), Width(width), Height(height)
+	:State(GAME_ACTIVE), Keys(), KeysProcessed(), Width(width), Height(height), Level(0)
 {
 
 }
@@ -21,7 +29,7 @@ Game::~Game()
 
 void Game::Init()
 {
-	auto shader = ResourceManager::LoadShader("Breakout/resources/sprite.vs", 
+	auto shader = ResourceManager::LoadShader("Breakout/resources/sprite.vs",
 		"Breakout/resources/sprite.fs", nullptr, "sprite");
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)this->Width, (float)this->Height, 0.0f, -1.0f, 1.0f);
@@ -31,11 +39,48 @@ void Game::Init()
 	Renderer = new SpriteRender(shader);
 
 	//load texture
-	ResourceManager::LoadTexture("Breakout/resources/textures/face.png", GL_TRUE, "face");
+	ResourceManager::LoadTexture("Breakout/resources/textures/face.png", true, "face");
+	ResourceManager::LoadTexture("Breakout/resources/textures/background.png", false, "background");
+	ResourceManager::LoadTexture("Breakout/resources/textures/block.png", false, "block");
+	ResourceManager::LoadTexture("Breakout/resources/textures/block_solid.png", false, "block_solid");
+	ResourceManager::LoadTexture("Breakout/resources/textures/paddle.png", true, "paddle");
+	//load levels
+
+	GameLevel one;one.Load("Breakout/resources/levels/one.lvl", this->Width, this->Height * 0.5f);
+	GameLevel two;two.Load("Breakout/resources/levels/two.lvl", this->Width, this->Height * 0.5f);
+	GameLevel three;three.Load("Breakout/resources/levels/three.lvl", this->Width, this->Height * 0.5f);
+	GameLevel four;four.Load("Breakout/resources/levels/four.lvl", this->Width, this->Height * 0.5f);
+	this->levels.push_back(one);
+	this->levels.push_back(two);
+	this->levels.push_back(three);
+	this->levels.push_back(four);
+	this->Level = 0;
+
+	auto playerPos = glm::vec2(
+		this->Width / 2 - PLAYER_SIZE.x /2,
+		this->Height -  PLAYER_SIZE.y
+	);
+	Player = new GameObject(playerPos, PLAYER_SIZE, ResourceManager::GetTexture("paddle"));
+
 }
 
 void Game::ProcessInput(float dt)
 {
+	if (this->State == GAME_ACTIVE) {
+		auto velocity = PLAYER_VELOCITY * dt;
+		if (this->Keys[GLFW_KEY_A])
+		{
+			if (Player->Position.x >= 0) {
+				Player->Position.x -= velocity;
+			}
+		}
+		if (this->Keys[GLFW_KEY_D])
+		{
+			if (Player->Position.x <= this->Width - Player->Size.x) {
+				Player->Position.x += velocity;
+			}
+		}
+	}
 }
 
 void Game::Update(float dt)
@@ -44,8 +89,16 @@ void Game::Update(float dt)
 
 void Game::Render()
 {
-	
-	auto texture = ResourceManager::GetTexture("face");
-	Renderer->DrawSprite(texture, glm::vec2(200, 200), glm::vec2(300, 400), 45.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+	if (this->State == GAME_ACTIVE) {
+		//draw background
+		auto background = ResourceManager::GetTexture("background");
+		Renderer->DrawSprite(background, glm::vec2(0, 0), glm::vec2(this->Width, this->Height));
 
+		//draw level
+		this->levels[this->Level].Draw(*Renderer);
+
+		//drwa paddle
+		Player->Draw(*Renderer);
+	}
+	
 }

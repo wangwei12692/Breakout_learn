@@ -1,4 +1,6 @@
 #pragma once
+#include <vector>
+#include "game_level.h"
 
 enum GameState {
 	GAME_ACTIVE,
@@ -10,6 +12,8 @@ class Game
 {
 public:
 	GameState State;
+	std::vector<GameLevel> levels;
+	int Level;
 	bool Keys[1024];
 	bool KeysProcessed[1024];
 	unsigned int Width, Height;
