@@ -13,7 +13,7 @@ void processInput(GLFWwindow *window);
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-Game game(SCR_WIDTH, SCR_HEIGHT);
+Game Breakout(SCR_WIDTH, SCR_HEIGHT);
 
 int main()
 {
@@ -49,8 +49,7 @@ int main()
         return -1;
     }
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-    std::cout <<"x = " << glm::mat4(1.0f)[0].x << std::endl;
-    game.Init();
+    Breakout.Init();
     
     while (!glfwWindowShouldClose(window))
     {
@@ -59,7 +58,7 @@ int main()
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        game.Render();
+        Breakout.Render();
 
         glfwSwapBuffers(window);
        

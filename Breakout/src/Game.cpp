@@ -21,8 +21,8 @@ Game::~Game()
 
 void Game::Init()
 {
-	auto shader = ResourceManager::LoadShader("D:\\workspace\\opengl\\Breakout\\Breakout\\resources\\sprite.vs", 
-		"D:\\workspace\\opengl\\Breakout\\Breakout\\resources\\sprite.fs", nullptr, "sprite");
+	auto shader = ResourceManager::LoadShader("Breakout/resources/sprite.vs", 
+		"Breakout/resources/sprite.fs", nullptr, "sprite");
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)this->Width, (float)this->Height, 0.0f, -1.0f, 1.0f);
 	shader.Use().SetInteger("image", 0);
@@ -31,7 +31,7 @@ void Game::Init()
 	Renderer = new SpriteRender(shader);
 
 	//load texture
-	ResourceManager::LoadTexture("D:\\workspace\\opengl\\Breakout\\Breakout\\resources\\textures\\face.png", GL_TRUE, "face");
+	ResourceManager::LoadTexture("Breakout/resources/textures/face.png", GL_TRUE, "face");
 }
 
 void Game::ProcessInput(float dt)
