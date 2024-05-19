@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <tuple>
+
 #include "game_level.h"
 
 
@@ -13,6 +15,15 @@ enum GameState {
 	GAME_MENU,
 	GAME_WIN
 };
+
+enum Direction {
+	UP,
+	RIGHT,
+	DOWN,
+	LEFT
+};
+
+typedef std::tuple<bool, Direction, glm::vec2> Collision;
 
 class Game
 {
@@ -33,4 +44,8 @@ public:
 	void ProcessInput(float dt);
 	void Update(float dt);
 	void Render();
+	void DoCollisions();
+
+	void ResetLevel();
+	void ResetPlayer();
 };

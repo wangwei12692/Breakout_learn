@@ -1,6 +1,6 @@
 #include <glm/glm.hpp>
 #include <iostream>
-//ÂÖàÂºïÂÖ•gladÔºåÂú®ÂºïÂÖ•glfwÔºå‰∏çÁÑ∂Êä•Èîô
+//œ»“˝»Îglad£¨‘⁄“˝»Îglfw£¨≤ª»ª±®¥Ì
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -96,6 +96,12 @@ void Game::ProcessInput(float dt)
 void Game::Update(float dt)
 {
 	Ball->Move(dt, this->Width);
+	this->DoCollisions();
+	if (Ball->Position.y >= this->Height)
+	{
+		this->ResetLevel();
+		this->ResetPlayer();
+	}
 }
 
 void Game::Render()
@@ -115,4 +121,150 @@ void Game::Render()
 			
 	}
 	
+}
+
+bool CheckCollision(GameObject& one,GameObject& two);
+Collision CheckCollision(BallObject& one,GameObject& two);
+
+void Game::DoCollisions()
+{
+	for(auto &box : this->levels[this->Level].Bricks) {
+		if (!box.Destroyed) {
+			auto collision = CheckCollision(*Ball, box);
+			if (std::get<0>(collision))
+			{
+				if (!box.IsSolid) {
+					box.Destroyed = true;
+				}
+				auto dir = std::get<1>(collision);
+				auto diff_vector = std::get<2>(collision);
+				if (dir == LEFT || dir == RIGHT)
+				{
+					//∑¥◊™ÀÆ∆ΩÀŸ∂»
+					Ball->Velocity.x = -Ball->Velocity.x;
+					//÷ÿ∂®Œª
+					float pentration = Ball->Radius - std::abs(diff_vector.x);
+					if (dir == LEFT)
+					{
+						Ball->Position.x += pentration;
+					}
+					else {
+						Ball->Position.x -= pentration;
+					}
+				}
+				else {
+					//∑¥◊™¥π÷±ÀŸ∂»
+					Ball->Velocity.y = -Ball->Velocity.y;
+					//÷ÿ∂®Œª
+					float pentration = Ball->Radius - std::abs(diff_vector.y);
+					if (dir == UP)
+					{
+						Ball->Position.y += pentration;
+					}
+					else {
+						Ball->Position.y -= pentration;
+					}
+										
+				}
+			}
+		}
+	}
+	auto result = CheckCollision(*Ball, *Player);
+	if (!Ball->Stuck && std::get<0>(result))
+	{
+		//µ≤∞Â÷––ƒ
+		auto centerBoard = Player->Position.x + Player->Size.x / 2;
+		auto distance = (Ball->Position.x + Ball->Radius) - centerBoard;
+		auto percentage = distance / (Player->Size.x / 2);
+
+		auto strength = 2.0f;
+		auto oldVelocity = Ball->Velocity;
+		Ball->Velocity.x = INITIAL_BALL_VELOCITY.x * percentage * strength;
+		Ball->Velocity.y = -Ball->Velocity.y;
+		//±£≥÷«Úµƒ¡¶¡ø∫ÕÀŸ∂»“ª÷¬£¨≤ª»ªø…ƒ‹x∑ΩœÚ‘Ω¿¥‘Ω¥Û£ª
+		//±®÷Ωx”Îy º”“‘¿¥“ª÷¬£¨x»Áπ˚¥Û¡ÀæÕÀı–°y
+		Ball->Velocity = glm::normalize(Ball->Velocity) * glm::length(oldVelocity);
+		//Ω‚æˆ’≥∞ÂŒ Ã‚£®–°«ÚÀŸ∂»π˝øÏ£¨‘⁄µ≤∞Âƒ⁄∂‡¥Œ∑¥◊™£¨’‚—˘◊”÷±Ω”∑µªÿ∏∫ ˝£¨ºŸ∂®≈ˆ◊≤‘⁄∂•≤ø£©
+		Ball->Velocity.y = -1 * abs(Ball->Velocity.y);
+	}
+}
+
+void Game::ResetLevel()
+{
+	if (this->Level == 0)
+	{
+		this->levels[0].Load("Breakout/resources/levels/one.lvl", this->Width, this->Height * 0.5f);
+	}else if (this->Level == 0)
+	{
+		this->levels[1].Load("Breakout/resources/levels/two.lvl", this->Width, this->Height * 0.5f);
+	}else if (this->Level == 0)
+	{
+		this->levels[2].Load("Breakout/resources/levels/three.lvl", this->Width, this->Height * 0.5f);
+	}else if (this->Level == 0)
+	{
+		this->levels[3].Load("Breakout/resources/levels/four.lvl", this->Width, this->Height * 0.5f);
+	}
+}
+
+void Game::ResetPlayer()
+{
+	auto playerPos = glm::vec2(
+		this->Width / 2 - PLAYER_SIZE.x / 2,
+		this->Height - PLAYER_SIZE.y
+	);
+	
+	Player->Position = playerPos;
+	auto ballPos = playerPos + glm::vec2(PLAYER_SIZE.x / 2.0f - BALL_RADIUS, -BALL_RADIUS * 2.0f);
+	Ball->Reset(ballPos, INITIAL_BALL_VELOCITY);
+}
+
+bool CheckCollision(GameObject& one, GameObject& two) {
+	bool collisionX = one.Position.x + one.Size.x >= two.Position.x
+		&& two.Position.x + two.Size.x >= one.Position.x;
+	bool collisionY = one.Position.y + one.Size.y >= two.Position.y
+		&& two.Position.y + two.Size.y >= one.Position.y;
+
+	return collisionX && collisionY;
+}
+
+Direction VectorDirection(glm::vec2 target)
+{
+	glm::vec2 compass[] = {
+		glm::vec2(0.0f,1.0f),//UP
+		glm::vec2(1.0f,1.0f),//RIGHT
+		glm::vec2(0.0f,-1.0f),//DOWN
+		glm::vec2(-1.0f,1.0f),//LEFT
+	};
+	float max = 0.0f;
+	unsigned int best_match = -1;
+	for (int i = 0;i < 4;i++) {
+		float dot_product = glm::dot(glm::normalize(target), compass[i]);
+		if (dot_product > max) {
+			max = dot_product;
+			best_match = i;
+		}
+	}
+	return (Direction)best_match;
+}
+
+
+Collision CheckCollision(BallObject& one, GameObject& two) {
+	glm::vec2 center(one.Position.x,one.Position.y);
+	glm::vec2 aabb_half_extents(two.Size.x / 2, two.Size.y / 2);
+	glm::vec2 aabb_center(
+		two.Position.x + aabb_half_extents.x, 
+		two.Position.y + aabb_half_extents.y
+	);
+	//≤Ó ß¡ø
+	glm::vec2 difference = center - aabb_center;
+	glm::vec2 clamped = glm::clamp(difference, -aabb_half_extents, aabb_half_extents);
+	auto closest = aabb_center + clamped;
+	difference = closest - center;
+	if (glm::length(difference) <= one.Radius)
+	{
+		return std::make_tuple(true, VectorDirection(difference), difference);
+	}
+	else {
+		return std::make_tuple(false, UP, glm::vec2(0, 0));
+	}
 }
