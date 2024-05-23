@@ -2,7 +2,7 @@
 # 并包含子项目。
 #
 cmake_minimum_required (VERSION 3.8)
-
+set(CMAKE_CXX_FLAGS "-std=c++17")
 # 如果支持，请为 MSVC 编译器启用热重载。
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)

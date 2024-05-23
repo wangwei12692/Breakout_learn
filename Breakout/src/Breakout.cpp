@@ -48,9 +48,15 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+    //openGL
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    //inin Game
     Breakout.Init();
-    
+
+    //dt
     float deltaTime = 0.0f;
     float lastFrame = 0.0f;
     while (!glfwWindowShouldClose(window))

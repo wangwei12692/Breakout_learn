@@ -1,6 +1,6 @@
 #include <glm/glm.hpp>
 #include <iostream>
-//ÏÈÒıÈëglad£¬ÔÚÒıÈëglfw£¬²»È»±¨´í
+//å…ˆå¼•å…¥gladï¼Œåœ¨å¼•å…¥glfwï¼Œä¸ç„¶æŠ¥é”™
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -9,9 +9,10 @@
 #include "sprite_render.h"
 #include "game_object.h"
 #include "ball_object.h"
-
+#include "particle_generator.h"
 
 SpriteRender* Renderer;
+ParticleGenerator* Particles;
 GameObject* Player;
 BallObject* Ball;
 
@@ -28,23 +29,28 @@ Game::~Game()
 
 void Game::Init()
 {
-	auto shader = ResourceManager::LoadShader("Breakout/resources/sprite.vs",
+	//load shaders
+	ResourceManager::LoadShader("Breakout/resources/sprite.vs",
 		"Breakout/resources/sprite.fs", nullptr, "sprite");
-
+	ResourceManager::LoadShader("Breakout/resources/particle.vs",
+		"Breakout/resources/particle.fs", nullptr, "particle");
+	//configure shaders
 	glm::mat4 projection = glm::ortho(0.0f, (float)this->Width, (float)this->Height, 0.0f, -1.0f, 1.0f);
-	shader.Use().SetInteger("image", 0);
-	shader.Use().SetMatrix4("projection", projection);
-
-	Renderer = new SpriteRender(shader);
-
-	//load texture
+	ResourceManager::GetShader("sprite").Use().SetInteger("sprite", 0);
+	ResourceManager::GetShader("sprite").Use().SetMatrix4("projection", projection);
+	ResourceManager::GetShader("particle").Use().SetInteger("sprite", 0);
+	ResourceManager::GetShader("particle").Use().SetMatrix4("projection", projection);
+	//load textures
 	ResourceManager::LoadTexture("Breakout/resources/textures/face.png", true, "face");
 	ResourceManager::LoadTexture("Breakout/resources/textures/background.png", false, "background");
 	ResourceManager::LoadTexture("Breakout/resources/textures/block.png", false, "block");
 	ResourceManager::LoadTexture("Breakout/resources/textures/block_solid.png", false, "block_solid");
 	ResourceManager::LoadTexture("Breakout/resources/textures/paddle.png", true, "paddle");
-	//load levels
+	ResourceManager::LoadTexture("Breakout/resources/textures/particle.png", true, "particle");
 
+	Renderer = new SpriteRender(ResourceManager::GetShader("sprite"));
+	Particles = new ParticleGenerator(ResourceManager::GetShader("particle"), ResourceManager::GetTexture("particle"),500);
+	//load levels
 	GameLevel one;one.Load("Breakout/resources/levels/one.lvl", this->Width, this->Height * 0.5f);
 	GameLevel two;two.Load("Breakout/resources/levels/two.lvl", this->Width, this->Height * 0.5f);
 	GameLevel three;three.Load("Breakout/resources/levels/three.lvl", this->Width, this->Height * 0.5f);
@@ -97,6 +103,7 @@ void Game::Update(float dt)
 {
 	Ball->Move(dt, this->Width);
 	this->DoCollisions();
+	Particles->Update(dt, *Ball, 2, glm::vec2(Ball->Radius / 2.0f));
 	if (Ball->Position.y >= this->Height)
 	{
 		this->ResetLevel();
@@ -114,8 +121,9 @@ void Game::Render()
 		//draw level
 		this->levels[this->Level].Draw(*Renderer);
 
-		//drwa paddle
+		//draw paddle
 		Player->Draw(*Renderer);
+		Particles->Draw();
 		//draw ball
 		Ball->Draw(*Renderer);
 			
@@ -140,9 +148,9 @@ void Game::DoCollisions()
 				auto diff_vector = std::get<2>(collision);
 				if (dir == LEFT || dir == RIGHT)
 				{
-					//·´×ªË®Æ½ËÙ¶È
+					//åè½¬æ°´å¹³é€Ÿåº¦
 					Ball->Velocity.x = -Ball->Velocity.x;
-					//ÖØ¶¨Î»
+					//é‡å®šä½
 					float pentration = Ball->Radius - std::abs(diff_vector.x);
 					if (dir == LEFT)
 					{
@@ -153,9 +161,9 @@ void Game::DoCollisions()
 					}
 				}
 				else {
-					//·´×ª´¹Ö±ËÙ¶È
+					//åè½¬å‚ç›´é€Ÿåº¦
 					Ball->Velocity.y = -Ball->Velocity.y;
-					//ÖØ¶¨Î»
+					//é‡å®šä½
 					float pentration = Ball->Radius - std::abs(diff_vector.y);
 					if (dir == UP)
 					{
@@ -172,7 +180,7 @@ void Game::DoCollisions()
 	auto result = CheckCollision(*Ball, *Player);
 	if (!Ball->Stuck && std::get<0>(result))
 	{
-		//µ²°åÖĞĞÄ
+		//æŒ¡æ¿ä¸­å¿ƒ
 		auto centerBoard = Player->Position.x + Player->Size.x / 2;
 		auto distance = (Ball->Position.x + Ball->Radius) - centerBoard;
 		auto percentage = distance / (Player->Size.x / 2);
@@ -181,10 +189,10 @@ void Game::DoCollisions()
 		auto oldVelocity = Ball->Velocity;
 		Ball->Velocity.x = INITIAL_BALL_VELOCITY.x * percentage * strength;
 		Ball->Velocity.y = -Ball->Velocity.y;
-		//±£³ÖÇòµÄÁ¦Á¿ºÍËÙ¶ÈÒ»ÖÂ£¬²»È»¿ÉÄÜx·½ÏòÔ½À´Ô½´ó£»
-		//±¨Ö½xÓëy ¼ÓÒÔÀ´Ò»ÖÂ£¬xÈç¹û´óÁË¾ÍËõĞ¡y
+		//ä¿æŒçƒçš„åŠ›é‡å’Œé€Ÿåº¦ä¸€è‡´ï¼Œä¸ç„¶å¯èƒ½xæ–¹å‘è¶Šæ¥è¶Šå¤§ï¼›
+		//æŠ¥çº¸xä¸y åŠ ä»¥æ¥ä¸€è‡´ï¼Œxå¦‚æœå¤§äº†å°±ç¼©å°y
 		Ball->Velocity = glm::normalize(Ball->Velocity) * glm::length(oldVelocity);
-		//½â¾öÕ³°åÎÊÌâ£¨Ğ¡ÇòËÙ¶È¹ı¿ì£¬ÔÚµ²°åÄÚ¶à´Î·´×ª£¬ÕâÑù×ÓÖ±½Ó·µ»Ø¸ºÊı£¬¼Ù¶¨Åö×²ÔÚ¶¥²¿£©
+		//è§£å†³ç²˜æ¿é—®é¢˜ï¼ˆå°çƒé€Ÿåº¦è¿‡å¿«ï¼Œåœ¨æŒ¡æ¿å†…å¤šæ¬¡åè½¬ï¼Œè¿™æ ·å­ç›´æ¥è¿”å›è´Ÿæ•°ï¼Œå‡å®šç¢°æ’åœ¨é¡¶éƒ¨ï¼‰
 		Ball->Velocity.y = -1 * abs(Ball->Velocity.y);
 	}
 }
@@ -255,7 +263,7 @@ Collision CheckCollision(BallObject& one, GameObject& two) {
 		two.Position.x + aabb_half_extents.x, 
 		two.Position.y + aabb_half_extents.y
 	);
-	//²îÊ§Á¿
+	//å·®å¤±é‡
 	glm::vec2 difference = center - aabb_center;
 	glm::vec2 clamped = glm::clamp(difference, -aabb_half_extents, aabb_half_extents);
 	auto closest = aabb_center + clamped;
