@@ -3,7 +3,7 @@
 #include <tuple>
 
 #include "game_level.h"
-
+#include "power_up.h"
 
 const glm::vec2 PLAYER_SIZE(100, 20);
 const float PLAYER_VELOCITY = 500.0f;
@@ -34,6 +34,7 @@ public:
 	bool Keys[1024];
 	bool KeysProcessed[1024];
 	unsigned int Width, Height;
+	std::vector<PowerUp> PowerUps;
 
 	Game(unsigned int width,unsigned int height);
 	~Game();
@@ -48,4 +49,9 @@ public:
 
 	void ResetLevel();
 	void ResetPlayer();
+
+	//在给定的砖块位置生产一个道具
+	void SpawnPowerUps(GameObject &block);
+	//管理更新当前激活的道具
+	void UpdatePowerUps(float dt);
 };

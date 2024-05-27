@@ -14,6 +14,7 @@ void main()
     vec2 texture = vertex.zw;
     if(chaos)
     {
+        //产生位移
         float strength = 0.3;
         vec2 pos = vec2(texture.x + sin(time) * strength, texture.y + cos(time) * strength);        
         TexCoords = pos;
