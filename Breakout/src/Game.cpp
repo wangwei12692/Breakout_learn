@@ -3,6 +3,7 @@
 // 先引入glad，在引入glfw，不然报错
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <irrklang/irrKlang.h>
 
 #include "Game.h"
 #include "resource_manager.h"
@@ -12,11 +13,14 @@
 #include "particle_generator.h"
 #include "post_processing.h"
 
+using namespace irrklang;
+
 SpriteRender *Renderer;
 PostProcessor *Effects;
 ParticleGenerator *Particles;
 GameObject *Player;
 BallObject *Ball;
+ISoundEngine *SoundEngine = createIrrKlangDevice();
 
 float ShakeTime = 0.0f;
 
@@ -28,6 +32,11 @@ Game::Game(unsigned int width, unsigned int height)
 Game::~Game()
 {
 	delete Renderer;
+	delete Effects;
+	delete Particles;
+	delete Player;
+	delete Ball;
+	SoundEngine->drop();
 }
 
 void Game::Init()
@@ -83,6 +92,8 @@ void Game::Init()
 	Player = new GameObject(playerPos, PLAYER_SIZE, ResourceManager::GetTexture("paddle"));
 	auto ballPos = playerPos + glm::vec2(PLAYER_SIZE.x / 2.0f - BALL_RADIUS, -BALL_RADIUS * 2.0f);
 	Ball = new BallObject(ballPos, BALL_RADIUS, INITIAL_BALL_VELOCITY, ResourceManager::GetTexture("face"));
+
+	SoundEngine->play2D("Breakout/resources/audio/breakout.mp3",true);
 }
 
 void Game::ProcessInput(float dt)
@@ -186,11 +197,14 @@ void Game::DoCollisions()
 				{
 					box.Destroyed = true;
 					this->SpawnPowerUps(box);
+					SoundEngine->play2D("Breakout/resources/audio/bleep.mp3",false);
 				}
 				else
 				{
+					//if block is solid,enable shake effect
 					ShakeTime = 0.05f;
 					Effects->Shake = true;
+					SoundEngine->play2D("Breakout/resources/audio/bleep.mp3",false);
 				}
 				auto dir = std::get<1>(collision);
 				auto diff_vector = std::get<2>(collision);
@@ -249,6 +263,7 @@ void Game::DoCollisions()
 		Ball->Velocity.y = -1 * abs(Ball->Velocity.y);
 
 		Ball->Stuck = Ball->Sticky;
+		SoundEngine->play2D("Breakout/resources/audio/bleep.wav",false);
 	}
 
 	for (auto &powerUp : this->PowerUps)
@@ -264,6 +279,7 @@ void Game::DoCollisions()
 				ActivePowerUp(powerUp);
 				powerUp.Destroyed = true;
 				powerUp.Activated = true;
+				SoundEngine->play2D("Breakout/resources/audio/powerup.wav",false);
 			}
 		}
 	}
@@ -298,6 +314,9 @@ void Game::ResetPlayer()
 	Player->Position = playerPos;
 	auto ballPos = playerPos + glm::vec2(PLAYER_SIZE.x / 2.0f - BALL_RADIUS, -BALL_RADIUS * 2.0f);
 	Ball->Reset(ballPos, INITIAL_BALL_VELOCITY);
+	
+	Player->Color = glm::vec3(1.0f);
+    Ball->Color = glm::vec3(1.0f);
 	Effects->Chaos = Effects->Confuse = false;
 }
 
