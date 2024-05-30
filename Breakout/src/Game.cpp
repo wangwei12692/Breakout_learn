@@ -1,5 +1,6 @@
 #include <glm/glm.hpp>
 #include <iostream>
+#include <sstream>
 // 先引入glad，在引入glfw，不然报错
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -12,6 +13,7 @@
 #include "ball_object.h"
 #include "particle_generator.h"
 #include "post_processing.h"
+#include "text_renderer.h"
 
 using namespace irrklang;
 
@@ -21,11 +23,12 @@ ParticleGenerator *Particles;
 GameObject *Player;
 BallObject *Ball;
 ISoundEngine *SoundEngine = createIrrKlangDevice();
+TextRenderer* Text;
 
 float ShakeTime = 0.0f;
 
 Game::Game(unsigned int width, unsigned int height)
-	: State(GAME_ACTIVE), Keys(), KeysProcessed(), Width(width), Height(height), Level(0)
+	: State(GAME_ACTIVE), Keys(), KeysProcessed(), Width(width), Height(height), Level(0),Lives(3)
 {
 }
 
@@ -71,6 +74,8 @@ void Game::Init()
 	Renderer = new SpriteRender(ResourceManager::GetShader("sprite"));
 	Particles = new ParticleGenerator(ResourceManager::GetShader("particle"), ResourceManager::GetTexture("particle"), 500);
 	Effects = new PostProcessor(ResourceManager::GetShader("post_processing"), this->Width, this->Height);
+	Text = new TextRenderer(this->Width, this->Height);
+	Text->Load("Breakout/resources/fonts/OCRAEXT.TTF",24);
 	// load levels
 	GameLevel one;
 	one.Load("Breakout/resources/levels/one.lvl", this->Width, this->Height * 0.5f);
@@ -98,7 +103,39 @@ void Game::Init()
 
 void Game::ProcessInput(float dt)
 {
-	if (this->State == GAME_ACTIVE)
+
+	if (this->State == GAME_MENU)
+	{
+		if (this->Keys[GLFW_KEY_ENTER] && !this->KeysProcessed[GLFW_KEY_ENTER])
+		{
+			this->State = GAME_ACTIVE;
+			this->KeysProcessed[GLFW_KEY_ENTER] = true;
+		}
+		if (this->Keys[GLFW_KEY_W] && !this->KeysProcessed[GLFW_KEY_W])
+		{
+			this->Level = (this->Level + 1) % 4;
+			this->KeysProcessed[GLFW_KEY_W] = true;
+		}
+		if (this->Keys[GLFW_KEY_S] && !this->KeysProcessed[GLFW_KEY_S])
+		{
+			if (this->Level > 0)
+				--this->Level;
+			else
+				this->Level = 3;
+			//this->Level = (this->Level - 1) % 4;
+			this->KeysProcessed[GLFW_KEY_S] = true;
+		}
+	}
+	else if (this->State == GAME_WIN)
+	{
+		if (this->Keys[GLFW_KEY_ENTER])
+		{
+			this->KeysProcessed[GLFW_KEY_ENTER] = true;
+			Effects->Chaos = false;
+			this->State = GAME_MENU;
+		}
+	}
+	else if (this->State == GAME_ACTIVE)
 	{
 		auto velocity = PLAYER_VELOCITY * dt;
 		if (this->Keys[GLFW_KEY_A])
@@ -136,11 +173,6 @@ void Game::Update(float dt)
 	this->DoCollisions();
 	Particles->Update(dt, *Ball, 2, glm::vec2(Ball->Radius / 2.0f));
 	this->UpdatePowerUps(dt);
-	if (Ball->Position.y >= this->Height)
-	{
-		this->ResetLevel();
-		this->ResetPlayer();
-	}
 	if (ShakeTime > 0.0f)
 	{
 		ShakeTime -= dt;
@@ -149,6 +181,22 @@ void Game::Update(float dt)
 			Effects->Shake = false;
 		}
 	}
+	if (Ball->Position.y >= this->Height)
+	{
+		--this->Lives;
+		if (this->Lives == 0) {
+			this->ResetLevel();
+			this->State = GAME_MENU;
+		}
+		this->ResetPlayer();
+	}
+	if (this->State == GAME_ACTIVE && this->levels[this->Level].IsComplete()) {
+		this->ResetLevel();
+		this->ResetPlayer();
+		Effects->Chaos = true;
+		this->State = GAME_WIN;
+	}
+
 }
 
 void Game::Render()
@@ -177,6 +225,17 @@ void Game::Render()
 		Ball->Draw(*Renderer);
 		Effects->EndRender();
 		Effects->Render(glfwGetTime());
+		std::stringstream ss;
+		ss << this -> Lives;
+		Text->RenderText("Lives: " + ss.str(), 5.0f, 5.0f, 1.0f);
+	}
+	else if (this->State == GAME_MENU) {
+		Text->RenderText("Press ENTER to start", 250.0f, this->Height / 2.0f, 1.0f);
+		Text->RenderText("Press W or S to select level", 245.0f, this->Height / 2.0f + 20.0f, 0.75f);
+	}
+	else {
+		Text->RenderText("You WON!!!", 320.0f, this->Height / 2.0f - 20.0f, 1.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+		Text->RenderText("Press ENTER to retry or ESC to quit", 130.0f, this->Height / 2.0f, 1.0f, glm::vec3(1.0f, 1.0f, 0.0f));
 	}
 }
 
@@ -303,6 +362,7 @@ void Game::ResetLevel()
 	{
 		this->levels[3].Load("Breakout/resources/levels/four.lvl", this->Width, this->Height * 0.5f);
 	}
+	this->Lives = 3;
 }
 
 void Game::ResetPlayer()

@@ -7,7 +7,7 @@ link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 #file(COPY "dlls" DESTINATION ${CMAKE_BINARY_DIR})
-add_executable (Breakout "src/Breakout.cpp" "src/glad.c" "src/Game.cpp" "src/Game.h"  "src/texture.h" "src/texture.cpp" "src/shader.h" "src/shader.cpp" "src/resource_manager.h" "src/resource_manager.cpp"  "src/stb_image.cpp" "src/sprite_render.h" "src/sprite_render.cpp" "src/game_level.h" "src/game_object.h" "src/game_level.cpp" "src/game_object.cpp" "src/ball_object.h" "src/ball_object.cpp" "src/particle_generator.h" "src/particle_generator.cpp" "src/post_processing.h" "src/post_processing.cpp" "src/power_up.h")
+add_executable (Breakout "src/Breakout.cpp" "src/glad.c" "src/Game.cpp" "src/Game.h"  "src/texture.h" "src/texture.cpp" "src/shader.h" "src/shader.cpp" "src/resource_manager.h" "src/resource_manager.cpp"  "src/stb_image.cpp" "src/sprite_render.h" "src/sprite_render.cpp" "src/game_level.h" "src/game_object.h" "src/game_level.cpp" "src/game_object.cpp" "src/ball_object.h" "src/ball_object.cpp" "src/particle_generator.h" "src/particle_generator.cpp" "src/post_processing.h" "src/post_processing.cpp" "src/power_up.h" "src/text_renderer.h" "src/text_renderer.cpp")
 target_link_libraries(Breakout ${LIBS})
 
 file(GLOB DLLS "dlls/*.dll")

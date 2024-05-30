@@ -7,5 +7,6 @@ uniform sampler2D sprite;
 
 void main()
 {
+    // ParticleColor 是片段着色器自动插值的
     color = (texture(sprite, TexCoords) * ParticleColor);
 }
